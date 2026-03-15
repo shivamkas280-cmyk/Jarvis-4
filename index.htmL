@@ -1,0 +1,167 @@
+<!DOCTYPE html><html>
+<head><title>Jarvis AI</title><style>
+
+body{
+background:#0f172a;
+color:white;
+font-family:sans-serif;
+margin:0;
+}
+
+.chat{
+height:75vh;
+overflow:auto;
+padding:15px;
+}
+
+.user{
+text-align:right;
+margin:10px;
+color:#60a5fa;
+}
+
+.ai{
+text-align:left;
+margin:10px;
+color:#34d399;
+}
+
+.bottom{
+position:fixed;
+bottom:0;
+width:100%;
+background:#020617;
+padding:10px;
+}
+
+input{
+padding:10px;
+border-radius:10px;
+border:none;
+}
+
+button{
+padding:10px;
+border-radius:10px;
+border:none;
+background:#2563eb;
+color:white;
+}
+
+.apiBox{
+background:#020617;
+padding:10px;
+}
+
+</style></head><body><div class="apiBox"><input id="api" placeholder="Paste OpenRouter API Key">
+<button onclick="saveAPI()">Save API</button></div><div class="chat" id="chat"></div><div class="bottom"><input id="msg" placeholder="Ask Jarvis">
+<button onclick="send()">Send</button></div><script>
+
+let API_KEY = localStorage.getItem("jarvis_api") || ""
+
+function saveAPI(){
+
+API_KEY=document.getElementById("api").value
+
+localStorage.setItem("jarvis_api",API_KEY)
+
+alert("API Saved")
+
+}
+
+function cleanText(text){
+
+return text.replace(/[*#`_]/g,"")
+
+}
+
+function speak(text){
+
+// remove emojis for voice
+let clean=text.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu,"")
+
+// remove markdown
+clean=clean.replace(/[*#`_]/g,"")
+
+let speech=new SpeechSynthesisUtterance(clean)
+
+speech.lang="hi-IN"
+
+speech.rate=1
+
+speech.pitch=1
+
+speechSynthesis.speak(speech)
+
+}
+
+async function send(){
+
+if(!API_KEY){
+alert("Pehle API key dalo")
+return
+}
+
+let msg=document.getElementById("msg").value
+
+if(!msg) return
+
+let chat=document.getElementById("chat")
+
+chat.innerHTML+=`<div class="user">${msg}</div>`
+
+document.getElementById("msg").value=""
+
+chat.innerHTML+=`<div class="ai">Jarvis soch raha hai...</div>`
+
+try{
+
+let res=await fetch("https://openrouter.ai/api/v1/chat/completions",{
+
+method:"POST",
+
+headers:{
+"Authorization":"Bearer "+API_KEY,
+"Content-Type":"application/json",
+"HTTP-Referer":location.href,
+"X-Title":"Jarvis AI"
+},
+
+body:JSON.stringify({
+
+model:"deepseek/deepseek-chat",
+
+messages:[
+{role:"system",content:"You are Jarvis AI created by Shivam. Reply in Hinglish. Do not use markdown symbols."},
+{role:"user",content:msg}
+]
+
+})
+
+})
+
+let data=await res.json()
+
+let reply="Reply nahi mila"
+
+if(data.choices){
+
+reply=data.choices[0].message.content
+
+}
+
+reply=cleanText(reply)
+
+chat.innerHTML+=`<div class="ai">${reply}</div>`
+
+speak(reply)
+
+}catch(e){
+
+chat.innerHTML+=`<div class="ai">Error: API connect nahi ho pa raha</div>`
+
+}
+
+}
+
+</script></body></html>
